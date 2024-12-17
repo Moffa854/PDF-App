@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pdf_app/cubits/favorites/favorites_cubit.dart';
 import 'package:pdf_app/cubits/pdf/pdf_cubit.dart';
 import 'package:pdf_app/screens/favorite_files_screen.dart';
+import 'package:pdf_app/widgets/sizes_app.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
@@ -24,29 +25,29 @@ class FileManagementScreen extends StatefulWidget {
 }
 
 class _FileManagementScreenState extends State<FileManagementScreen> {
-
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => FileManagementViewModel(),
       child: Scaffold(
         body: SafeArea(
-          child: Column(
-            children: [
-              _buildSearchBar(),
-              const SizedBox(height: 16),
-              Container(
-                height: 120,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _buildFileTypes(),
+          child: BlocProvider.value(
+            value: context.read<StorageCubit>(),
+            child: SingleChildScrollView(
+              key: const PageStorageKey<String>('file_management_scroll'),
+              child: Column(
+                children: [
+                  _buildSearchBar(),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _buildFileTypes(),
+                  ),
+                  const SizedBox(height: 24),
+                  _buildStorageSection(),
+                ].animate(interval: 100.ms).fadeIn(duration: 400.ms).slideX(),
               ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: _buildStorageSection(),
-                ),
-              ),
-            ].animate(interval: 100.ms).fadeIn(duration: 400.ms).slideX(),
+            ),
           ),
         ),
       ),
@@ -78,11 +79,11 @@ class _FileManagementScreenState extends State<FileManagementScreen> {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 1.0,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: sizesApp(context, 50, 180, 70).toDouble(),
+        mainAxisSpacing: sizesApp(context, 50, 180, 70).toDouble(),
+        childAspectRatio: 1.5,
       ),
       itemCount: fileTypes.length,
       itemBuilder: (context, index) {
@@ -181,24 +182,13 @@ class _FileManagementScreenState extends State<FileManagementScreen> {
             icon: const Icon(Icons.menu),
             onPressed: () {},
           ),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: TextField(
-                onTap: () {
-                  
-                },
-                cursorColor: Colors.grey[600],
-                decoration: InputDecoration(
-                  hintText: 'Search file, template, tool...',
-                  border: InputBorder.none,
-                  icon: Icon(Icons.search, color: Colors.grey[600]),
-                ),
-              ),
+          const SizedBox(width: 16),
+          Text(
+            'File Management',
+            style: GoogleFonts.inter(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
           ),
         ],

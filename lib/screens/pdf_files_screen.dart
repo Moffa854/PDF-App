@@ -1,7 +1,10 @@
 // ignore_for_file: use_build_context_synchronously, depend_on_referenced_packages
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
@@ -12,7 +15,6 @@ import '../cubits/favorites/favorites_cubit.dart';
 import '../cubits/favorites/favorites_state.dart';
 import '../cubits/pdf/pdf_cubit.dart';
 import '../cubits/pdf/pdf_state.dart';
-import '../screens/favorite_files_screen.dart';
 import '../screens/pdf_search_delegate.dart';
 import '../screens/pdf_viewer_screen.dart';
 import '../viewmodels/pdf_viewmodel.dart';
@@ -42,20 +44,6 @@ class _PdfFilesScreenState extends State<PdfFilesScreen> {
             title: const Text('PDF Files'),
             centerTitle: true,
             actions: [
-              IconButton(
-                icon: const Icon(Icons.favorite),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => BlocProvider.value(
-                        value: BlocProvider.of<FavoritesCubit>(context),
-                        child: const FavoriteFilesScreen(),
-                      ),
-                    ),
-                  );
-                },
-              ),
               IconButton(
                 icon: const Icon(Icons.search),
                 onPressed: () {
@@ -107,53 +95,85 @@ class _PdfFilesScreenState extends State<PdfFilesScreen> {
                           final lastModified =
                               viewModel.getLastModified(filePath);
 
-                          return ListTile(
-                            leading: const Icon(
-                              Icons.picture_as_pdf,
-                              color: Colors.red,
-                              size: 32,
-                            ),
-                            title: Text(
-                              fileName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                                fontSize: 16,
-                              ),
-                            ),
-                            subtitle: Text(
-                              '$fileSize • Modified: ${DateFormat('MMM d, y').format(lastModified)}',
-                            ),
-                            trailing:
-                                BlocBuilder<FavoritesCubit, FavoritesState>(
-                              builder: (context, favoritesState) {
-                                final isFavorite = favoritesState.favoritePdfs
-                                    .contains(filePath);
-                                return IconButton(
-                                  icon: Icon(
-                                    isFavorite
-                                        ? Icons.favorite
-                                        : Icons.favorite_border,
-                                    color:
-                                        isFavorite ? Colors.red : Colors.grey,
-                                  ),
-                                  onPressed: () {
-                                    context
-                                        .read<FavoritesCubit>()
-                                        .toggleFavorite(filePath);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(isFavorite
-                                            ? 'Removed from favorites'
-                                            : 'Added to favorites'),
-                                        duration: const Duration(seconds: 1),
-                                      ),
-                                    );
+                          return Slidable(
+                            key: ValueKey(filePath),
+                            endActionPane: ActionPane(
+                              motion: const ScrollMotion(),
+                              children: [
+                                SlidableAction(
+                                  onPressed: (context) async {
+                                    final file = File(filePath);
+                                    if (await file.exists()) {
+                                      await file.delete();
+                                      context.read<PdfCubit>().loadPdfFiles();
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                                'File deleted successfully'),
+                                            duration: Duration(seconds: 2),
+                                          ),
+                                        );
+                                      }
+                                    }
                                   },
-                                );
-                              },
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                  icon: Icons.delete,
+                                  label: 'Delete',
+                                ),
+                              ],
                             ),
-                            onTap: () => _openPdfFile(context, filePath),
+                            child: ListTile(
+                              leading: const Icon(
+                                Icons.picture_as_pdf,
+                                color: Colors.red,
+                                size: 32,
+                              ),
+                              title: Text(
+                                fileName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '$fileSize • Modified: ${DateFormat('MMM d, y').format(lastModified)}',
+                              ),
+                              trailing:
+                                  BlocBuilder<FavoritesCubit, FavoritesState>(
+                                builder: (context, favoritesState) {
+                                  final isFavorite = favoritesState.favoritePdfs
+                                      .contains(filePath);
+                                  return IconButton(
+                                    icon: Icon(
+                                      isFavorite
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
+                                      color:
+                                          isFavorite ? Colors.red : Colors.grey,
+                                    ),
+                                    onPressed: () {
+                                      context
+                                          .read<FavoritesCubit>()
+                                          .toggleFavorite(filePath);
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(isFavorite
+                                              ? 'Removed from favorites'
+                                              : 'Added to favorites'),
+                                          duration: const Duration(seconds: 1),
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
+                              onTap: () => _openPdfFile(context, filePath),
+                            ),
                           );
                         },
                       ),

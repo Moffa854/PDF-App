@@ -31,6 +31,8 @@ dependencies:
   device_info_plus: ^10.1.2
   syncfusion_flutter_pdfviewer: ^27.2.5
   open_file: ^3.3.2
+  flutter_slidable: ^3.0.1
+  flex_color_scheme: ^7.3.1
 
 dev_dependencies:
   flutter_test:
