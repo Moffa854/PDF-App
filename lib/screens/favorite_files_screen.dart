@@ -1,0 +1,101 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
+
+import '../cubits/favorites/favorites_cubit.dart';
+import '../cubits/favorites/favorites_state.dart';
+import 'pdf_viewer_screen.dart';
+
+class FavoriteFilesScreen extends StatelessWidget {
+  const FavoriteFilesScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Favorite PDFs'),
+      ),
+      body: BlocConsumer<FavoritesCubit, FavoritesState>(
+        listener: (context, state) {
+          // This will be called whenever the state changes
+          if (state.error != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.error!)),
+            );
+          }
+        },
+        builder: (context, state) {
+          if (state.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (state.error != null) {
+            return Center(
+              child: Text(
+                state.error!,
+                style: const TextStyle(color: Colors.red),
+              ),
+            );
+          }
+
+          if (state.favoritePdfs.isEmpty) {
+            return const Center(
+              child: Text('No favorite PDFs yet'),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: () async {
+              await context.read<FavoritesCubit>().loadFavorites();
+            },
+            child: ListView.builder(
+              itemCount: state.favoritePdfs.length,
+              itemBuilder: (context, index) {
+                final filePath = state.favoritePdfs[index];
+                final file = File(filePath);
+                final fileName = file.path.split('/').last;
+                final fileSize =
+                    '${(file.lengthSync() / (1024 * 1024)).toStringAsFixed(1)} MB';
+                final lastModified = file.lastModifiedSync();
+
+                return ListTile(
+                  leading: const Icon(
+                    Icons.picture_as_pdf,
+                    color: Colors.red,
+                    size: 32,
+                  ),
+                  subtitle: Text(
+                    '$fileSize • Modified: ${DateFormat('MMM d, y').format(lastModified)}',
+                  ),
+                  title: Text(fileName),
+                  trailing: IconButton(
+                    icon: const Icon(
+                      Icons.remove_circle_outlined,
+                      color: Colors.red,
+                    ),
+                    onPressed: () {
+                      context.read<FavoritesCubit>().toggleFavorite(filePath);
+                    },
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PdfViewerScreen(
+                          filePath: filePath,
+                          fileName: fileName,
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
