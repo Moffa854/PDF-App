@@ -2,7 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../cubits/favorites/favorites_cubit.dart';
 import '../cubits/favorites/favorites_state.dart';
@@ -13,9 +15,16 @@ class FavoriteFilesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Favorite PDFs'),
+        title: Text(
+          l10n.favoriteFiles,
+          style: GoogleFonts.inter(
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
       body: BlocConsumer<FavoritesCubit, FavoritesState>(
         listener: (context, state) {
@@ -28,7 +37,7 @@ class FavoriteFilesScreen extends StatelessWidget {
         },
         builder: (context, state) {
           if (state.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(child: Text(l10n.loading));
           }
 
           if (state.error != null) {
@@ -41,8 +50,8 @@ class FavoriteFilesScreen extends StatelessWidget {
           }
 
           if (state.favoritePdfs.isEmpty) {
-            return const Center(
-              child: Text('No favorite PDFs yet'),
+            return Center(
+              child: Text(l10n.noFavoriteFiles),
             );
           }
 
@@ -50,7 +59,8 @@ class FavoriteFilesScreen extends StatelessWidget {
             onRefresh: () async {
               await context.read<FavoritesCubit>().loadFavorites();
             },
-            child: ListView.builder(
+            child: ListView.separated(
+              separatorBuilder: (context, index) => const Divider(),
               itemCount: state.favoritePdfs.length,
               itemBuilder: (context, index) {
                 final filePath = state.favoritePdfs[index];
@@ -67,9 +77,15 @@ class FavoriteFilesScreen extends StatelessWidget {
                     size: 32,
                   ),
                   subtitle: Text(
-                    '$fileSize • Modified: ${DateFormat('MMM d, y').format(lastModified)}',
+                    '${l10n.size}: $fileSize • ${l10n.modified}: ${DateFormat('MMM d, y').format(lastModified)}',
                   ),
-                  title: Text(fileName),
+                  title: Text(
+                    fileName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                   trailing: IconButton(
                     icon: const Icon(
                       Icons.remove_circle_outlined,

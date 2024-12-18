@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class PdfViewerScreen extends StatefulWidget {
   final String filePath;
@@ -31,12 +32,15 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
+        title: Text(widget.fileName),
         actions: [
           IconButton(
             icon: const Icon(Icons.bookmark),
             onPressed: _toggleBookmark,
+            tooltip: l10n.bookmark,
           ),
           IconButton(
             icon: const Icon(Icons.zoom_in),
@@ -44,6 +48,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
               _pdfViewerController.zoomLevel =
                   _pdfViewerController.zoomLevel + 1.0;
             },
+            tooltip: l10n.zoomIn,
           ),
           IconButton(
             icon: const Icon(Icons.zoom_out),
@@ -51,17 +56,18 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
               _pdfViewerController.zoomLevel =
                   _pdfViewerController.zoomLevel - 1.0;
             },
+            tooltip: l10n.zoomOut,
           ),
         ],
       ),
       body: Stack(
         children: [
           if (_isLoading)
-            const Center(
-              child: CircularProgressIndicator(),
+            Center(
+              child: Text(l10n.loading),
             )
           else if (_errorMessage != null)
-            _buildErrorWidget()
+            _buildErrorWidget(context)
           else
             GestureDetector(
               onTap: () {
@@ -87,7 +93,6 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                     _annotationMode = PdfAnnotationMode.none;
                   });
                 },
-                
                 onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
                   setState(() {
                     _errorMessage = 'Failed to load PDF: ${details.error}';
@@ -95,7 +100,6 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                 },
               ),
             ),
-          
           if (_bookmarkedPages.isNotEmpty) _buildBookmarksList(),
         ],
       ),
@@ -116,8 +120,6 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     _pdfViewerController = PdfViewerController();
     _validateAndLoadPdf();
   }
-
-  
 
   Widget _buildBookmarksList() {
     return Positioned(
@@ -142,8 +144,8 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     );
   }
 
-
-  Widget _buildErrorWidget() {
+  Widget _buildErrorWidget(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -155,33 +157,24 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            _errorMessage ?? 'Error loading PDF',
+            _errorMessage ?? l10n.errorLoadingPdf,
             style: const TextStyle(
               color: Colors.red,
               fontSize: 16,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text('Go Back'),
-          ),
         ],
       ),
     );
   }
 
-
-  
-
   void _showBookmarksDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Bookmarks'),
+        title: Text(l10n.bookmark),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -212,16 +205,12 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text(l10n.close),
           ),
         ],
       ),
     );
   }
-
-
-
-  
 
   void _toggleBookmark() {
     final currentPage = _pdfViewerController.pageNumber;

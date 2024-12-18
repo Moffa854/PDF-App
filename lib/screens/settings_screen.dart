@@ -1,7 +1,13 @@
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+// ignore_for_file: unused_element, unused_local_variable
+
 import 'package:flex_color_scheme/flex_color_scheme.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:pdf_app/cubits/language/language_state.dart';
+
+import '../cubits/language/language_cubit.dart';
 import '../cubits/theme/theme_cubit.dart';
 import '../cubits/theme/theme_state.dart';
 
@@ -19,14 +25,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Settings',
+          l10n.settings,
           style: GoogleFonts.inter(
             fontSize: 24,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
           ),
         ),
       ),
@@ -35,28 +42,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              _buildSectionHeader('Appearance'),
+              _buildSectionHeader(l10n.appearance),
               SwitchListTile(
-                title: const Text('Dark Mode'),
-                subtitle: const Text('Enable dark theme'),
+                title: Text(l10n.darkMode),
+                subtitle: Text(l10n.enableDarkTheme),
                 value: themeState.isDarkMode,
                 onChanged: (value) {
                   context.read<ThemeCubit>().setThemeMode(
-                    value ? ThemeMode.dark : ThemeMode.light,
-                  );
+                        value ? ThemeMode.dark : ThemeMode.light,
+                      );
                 },
               ),
               ListTile(
-                title: const Text('Color Scheme'),
+                title: Text(l10n.colorScheme),
                 subtitle: Text(themeState.colorScheme.name),
                 trailing: const Icon(Icons.palette),
                 onTap: () => _showColorSchemeDialog(context),
               ),
               const Divider(),
-              _buildSectionHeader('Notifications'),
+              _buildSectionHeader(l10n.notifications),
               SwitchListTile(
-                title: const Text('Push Notifications'),
-                subtitle: const Text('Get notified about important updates'),
+                title: Text(l10n.pushNotifications),
+                subtitle: Text(l10n.notificationsSubtitle),
                 value: notificationsEnabled,
                 onChanged: (value) {
                   setState(() {
@@ -65,45 +72,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
               const Divider(),
-              _buildSectionHeader('File Management'),
-              ListTile(
-                title: const Text('Sort Files By'),
-                subtitle: Text(sortBy.toUpperCase()),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () {
-                  _showSortByDialog();
-                },
-              ),
-              SwitchListTile(
-                title: const Text('Auto Delete'),
-                subtitle: const Text('Automatically delete files after 30 days'),
-                value: autoDeleteEnabled,
-                onChanged: (value) {
-                  setState(() {
-                    autoDeleteEnabled = value;
-                  });
+              _buildSectionHeader(l10n.appLanguage),
+              BlocBuilder<LanguageCubit, LanguageState>(
+                builder: (context, state) {
+                  final languageCubit = context.read<LanguageCubit>();
+                  return ListTile(
+                    title: Text(l10n.language),
+                    subtitle: Text(languageCubit
+                        .getLanguageName(state.locale.languageCode)),
+                    trailing: const Icon(Icons.language),
+                    onTap: () => _showLanguageDialog(context),
+                  );
                 },
               ),
               const Divider(),
-              _buildSectionHeader('About'),
-              const ListTile(
-                title: Text('Version'),
-                subtitle: Text('1.0.0'),
+              _buildSectionHeader(l10n.about),
+              ListTile(
+                title: Text(l10n.version),
+                subtitle: const Text('1.0.0'),
               ),
               ListTile(
-                title: const Text('Terms of Service'),
+                title: Text(l10n.termsOfService),
                 onTap: () {
                   // TODO: Implement terms of service
                 },
               ),
               ListTile(
-                title: const Text('Privacy Policy'),
+                title: Text(l10n.privacyPolicy),
                 onTap: () {
                   // TODO: Implement privacy policy
                 },
               ),
             ],
           );
+        },
+      ),
+    );
+  }
+
+  Widget _buildLanguageOption(BuildContext context, String code, String name) {
+    final languageCubit = context.read<LanguageCubit>();
+
+    return ListTile(
+      title: Text(name),
+      leading: Radio<String>(
+        value: code,
+        groupValue: languageCubit.getCurrentLanguage(),
+        onChanged: (value) {
+          if (value != null) {
+            languageCubit.setLanguage(value);
+            Navigator.pop(context);
+          }
         },
       ),
     );
@@ -117,8 +136,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
         style: GoogleFonts.inter(
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: Colors.black87,
         ),
+      ),
+    );
+  }
+
+  Widget _buildSortOption(String option) {
+    return ListTile(
+      title: Text(option),
+      leading: Radio<String>(
+        value: option.toLowerCase(),
+        groupValue: sortBy,
+        onChanged: (value) {
+          setState(() {
+            sortBy = value!;
+            Navigator.pop(context);
+          });
+        },
       ),
     );
   }
@@ -143,7 +177,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 final scheme = FlexScheme.values[index];
                 return ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: FlexColorScheme.light(scheme: scheme).primary,
+                    backgroundColor:
+                        FlexColorScheme.light(scheme: scheme).primary,
                     radius: 15,
                   ),
                   title: Text(scheme.name),
@@ -160,29 +195,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSortOption(String option) {
-    return ListTile(
-      title: Text(option),
-      leading: Radio<String>(
-        value: option.toLowerCase(),
-        groupValue: sortBy,
-        onChanged: (value) {
-          setState(() {
-            sortBy = value!;
-            Navigator.pop(context);
-          });
-        },
-      ),
-    );
-  }
+  void _showLanguageDialog(BuildContext context) {
+    // ignore: unused_local_variable
+    context.read<LanguageCubit>();
 
-  void _showSortByDialog() {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: Text(
-            'Sort Files By',
+            'Select Language',
             style: GoogleFonts.inter(
               fontWeight: FontWeight.w600,
             ),
@@ -190,9 +212,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildSortOption('Name'),
-              _buildSortOption('Date'),
-              _buildSortOption('Size'),
+              _buildLanguageOption(context, 'en', 'English'),
+              _buildLanguageOption(context, 'ar', 'العربية'),
+              _buildLanguageOption(context, 'fr', 'Français'),
             ],
           ),
         );

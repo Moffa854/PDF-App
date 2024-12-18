@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
@@ -29,6 +31,7 @@ class PdfFilesScreen extends StatefulWidget {
 class _PdfFilesScreenState extends State<PdfFilesScreen> {
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ChangeNotifierProvider(
       create: (context) => PdfViewModel(),
       child: MultiBlocProvider(
@@ -41,7 +44,13 @@ class _PdfFilesScreenState extends State<PdfFilesScreen> {
         ],
         child: Scaffold(
           appBar: AppBar(
-            title: const Text('PDF Files'),
+            title: Text(
+              l10n.pdfFiles,
+              style: GoogleFonts.inter(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             centerTitle: true,
             actions: [
               IconButton(
@@ -50,7 +59,8 @@ class _PdfFilesScreenState extends State<PdfFilesScreen> {
                   showSearch(
                     context: context,
                     delegate: PdfSearchDelegate(
-                        context.read<PdfCubit>().state.pdfFiles),
+                      context.read<PdfCubit>().state.pdfFiles,
+                    ),
                   );
                 },
               ),
@@ -62,7 +72,7 @@ class _PdfFilesScreenState extends State<PdfFilesScreen> {
                 child: BlocBuilder<PdfCubit, PdfState>(
                   builder: (context, state) {
                     if (state.isLoading) {
-                      return const Center(child: CircularProgressIndicator());
+                      return Center(child: Text(l10n.loading));
                     }
 
                     if (state.error != null) {
@@ -75,8 +85,8 @@ class _PdfFilesScreenState extends State<PdfFilesScreen> {
                     }
 
                     if (state.pdfFiles.isEmpty) {
-                      return const Center(
-                        child: Text('No PDF files found'),
+                      return Center(
+                        child: Text(l10n.noPdfFiles),
                       );
                     }
 
@@ -85,7 +95,8 @@ class _PdfFilesScreenState extends State<PdfFilesScreen> {
                         await context.read<PdfCubit>().loadPdfFiles();
                         await context.read<FavoritesCubit>().loadFavorites();
                       },
-                      child: ListView.builder(
+                      child: ListView.separated(
+                        separatorBuilder: (context, index) => const Divider(),
                         itemCount: state.pdfFiles.length,
                         itemBuilder: (context, index) {
                           final filePath = state.pdfFiles[index];
@@ -109,10 +120,10 @@ class _PdfFilesScreenState extends State<PdfFilesScreen> {
                                       if (mounted) {
                                         ScaffoldMessenger.of(context)
                                             .showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                                'File deleted successfully'),
-                                            duration: Duration(seconds: 2),
+                                          SnackBar(
+                                            content: Text(l10n.fileDeleted),
+                                            duration:
+                                                const Duration(seconds: 2),
                                           ),
                                         );
                                       }
@@ -121,7 +132,7 @@ class _PdfFilesScreenState extends State<PdfFilesScreen> {
                                   backgroundColor: Colors.red,
                                   foregroundColor: Colors.white,
                                   icon: Icons.delete,
-                                  label: 'Delete',
+                                  label: l10n.delete,
                                 ),
                               ],
                             ),
@@ -135,17 +146,16 @@ class _PdfFilesScreenState extends State<PdfFilesScreen> {
                                 fileName,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black,
                                   fontSize: 16,
                                 ),
                               ),
                               subtitle: Text(
-                                '$fileSize • Modified: ${DateFormat('MMM d, y').format(lastModified)}',
+                                '${l10n.size}: $fileSize • ${l10n.modified}: ${DateFormat('MMM d, y').format(lastModified)}',
                               ),
                               trailing:
                                   BlocBuilder<FavoritesCubit, FavoritesState>(
-                                builder: (context, favoritesState) {
-                                  final isFavorite = favoritesState.favoritePdfs
+                                builder: (context, favoriteState) {
+                                  final isFavorite = favoriteState.favoritePdfs
                                       .contains(filePath);
                                   return IconButton(
                                     icon: Icon(
@@ -163,8 +173,8 @@ class _PdfFilesScreenState extends State<PdfFilesScreen> {
                                           .showSnackBar(
                                         SnackBar(
                                           content: Text(isFavorite
-                                              ? 'Removed from favorites'
-                                              : 'Added to favorites'),
+                                              ? l10n.removedFromFavorites
+                                              : l10n.addedToFavorites),
                                           duration: const Duration(seconds: 1),
                                         ),
                                       );

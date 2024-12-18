@@ -5,13 +5,16 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:pdf_app/cubits/language/language_state.dart';
 import 'package:pdf_app/screens/app_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'cubits/favorites/favorites_cubit.dart';
+import 'cubits/language/language_cubit.dart';
 import 'cubits/pdf/pdf_cubit.dart';
 import 'cubits/storage/storage_cubit.dart';
 import 'cubits/theme/theme_cubit.dart';
@@ -56,6 +59,9 @@ void main() async {
             BlocProvider(
               create: (context) => ThemeCubit(prefs),
             ),
+            BlocProvider(
+              create: (context) => LanguageCubit(prefs),
+            ),
           ],
           child: const MyApp(),
         ),
@@ -71,16 +77,31 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<ThemeCubit, ThemeState>(
       builder: (context, themeState) {
-        return MaterialApp(
-          title: 'PDF Master',
-          debugShowCheckedModeBanner: false,
-          useInheritedMediaQuery: true,
-          locale: DevicePreview.locale(context),
-          builder: DevicePreview.appBuilder,
-          theme: themeState.lightTheme,
-          darkTheme: themeState.darkTheme,
-          themeMode: themeState.themeMode,
-          home: const AppScreen(),
+        return BlocBuilder<LanguageCubit, LanguageState>(
+          builder: (context, languageState) {
+            return MaterialApp(
+              title: 'PDF Master',
+              debugShowCheckedModeBanner: false,
+              useInheritedMediaQuery: true,
+              locale: languageState.locale,
+              supportedLocales: const [
+                Locale('en'), // English
+                Locale('ar'), // Arabic
+                Locale('fr'), // French
+              ],
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              builder: DevicePreview.appBuilder,
+              theme: themeState.lightTheme,
+              darkTheme: themeState.darkTheme,
+              themeMode: themeState.themeMode,
+              home: const AppScreen(),
+            );
+          },
         );
       },
     );

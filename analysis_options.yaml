@@ -11,8 +11,8 @@ analyzer:
   errors:
     deprecated_member_use: ignore
     avoid_print: ignore ignore ignore ignore ignore ignore ignore ignore ignore
-    unused_element: ignore ignore ignore ignore ignore
-    unused_local_variable: ignore ignore ignore ignore
+    unused_element: ignore ignore ignore ignore ignore ignore
+    unused_local_variable: ignore ignore ignore ignore ignore
     depend_on_referenced_packages: ignore ignore ignore ignore ignore ignore ignore ignore ignore
     unused_field: ignore
     duplicate_ignore: ignore
