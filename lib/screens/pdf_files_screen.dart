@@ -3,6 +3,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -12,6 +13,7 @@ import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
 // ignore: depend_on_referenced_packages
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
 
 import '../cubits/favorites/favorites_cubit.dart';
 import '../cubits/favorites/favorites_state.dart';
@@ -28,85 +30,177 @@ class PdfFilesScreen extends StatefulWidget {
   State<PdfFilesScreen> createState() => _PdfFilesScreenState();
 }
 
-class _PdfFilesScreenState extends State<PdfFilesScreen> {
+class _PdfFilesScreenState extends State<PdfFilesScreen> with TickerProviderStateMixin {
+  final ScrollController _scrollController = ScrollController();
+  final Map<int, AnimationController> _animationControllers = {};
+  bool _isScrollingDown = true;
+
+  @override
+  void initState() {
+    super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+    context.read<PdfCubit>().loadPdfFiles();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    // Dispose all animation controllers
+    for (final controller in _animationControllers.values) {
+      controller.dispose();
+    }
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeRight,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.userScrollDirection == ScrollDirection.reverse) {
+      if (!_isScrollingDown) {
+        setState(() {
+          _isScrollingDown = true;
+        });
+      }
+    }
+    if (_scrollController.position.userScrollDirection == ScrollDirection.forward) {
+      if (_isScrollingDown) {
+        setState(() {
+          _isScrollingDown = false;
+        });
+      }
+    }
+  }
+
+  Widget _buildAnimatedListItem(BuildContext context, int index, Widget child) {
+    if (!_animationControllers.containsKey(index)) {
+      final controller = AnimationController(
+        vsync: this,
+        duration: Duration(milliseconds: 400 + (index * 50)),
+      );
+      _animationControllers[index] = controller;
+      
+      final slideAnimation = Tween<Offset>(
+        begin: const Offset(0, 0.2),
+        end: Offset.zero,
+      ).animate(
+        CurvedAnimation(
+          parent: controller,
+          curve: Curves.easeOutCubic,
+        ),
+      );
+
+      final fadeAnimation = Tween<double>(
+        begin: 0.0,
+        end: 1.0,
+      ).animate(
+        CurvedAnimation(
+          parent: controller,
+          curve: Curves.easeOut,
+        ),
+      );
+
+      controller.forward();
+
+      return SlideTransition(
+        position: slideAnimation,
+        child: FadeTransition(
+          opacity: fadeAnimation,
+          child: child,
+        ),
+      );
+    }
+    return child;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return ChangeNotifierProvider(
-      create: (context) => PdfViewModel(),
-      child: MultiBlocProvider(
-        providers: [
-          BlocProvider(create: (context) => PdfCubit()..loadPdfFiles()),
-          BlocProvider(
-            create: (context) =>
-                FavoritesCubit(context.read<SharedPreferences>()),
-          ),
-        ],
-        child: Scaffold(
-          appBar: AppBar(
-            title: Text(
-              l10n.pdfFiles,
-              style: GoogleFonts.inter(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-              ),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (context) => PdfCubit()..loadPdfFiles()),
+        BlocProvider(
+          create: (context) =>
+              FavoritesCubit(context.read<SharedPreferences>()),
+        ),
+      ],
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            l10n.pdfFiles,
+            style: GoogleFonts.inter(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
             ),
-            centerTitle: true,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.search),
-                onPressed: () {
-                  showSearch(
-                    context: context,
-                    delegate: PdfSearchDelegate(
-                      context.read<PdfCubit>().state.pdfFiles,
-                    ),
-                  );
-                },
-              ),
-            ],
           ),
-          body: Column(
-            children: [
-              Expanded(
-                child: BlocBuilder<PdfCubit, PdfState>(
-                  builder: (context, state) {
-                    if (state.isLoading) {
-                      return Center(child: Text(l10n.loading));
-                    }
+          centerTitle: true,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: () {
+                showSearch(
+                  context: context,
+                  delegate: PdfSearchDelegate(
+                    context.read<PdfCubit>().state.pdfFiles,
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: BlocBuilder<PdfCubit, PdfState>(
+                builder: (context, state) {
+                  if (state.isLoading) {
+                    return Center(child: Text(l10n.loading));
+                  }
 
-                    if (state.error != null) {
-                      return Center(
-                        child: Text(
-                          state.error!,
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      );
-                    }
+                  if (state.error != null) {
+                    return Center(
+                      child: Text(
+                        state.error!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    );
+                  }
 
-                    if (state.pdfFiles.isEmpty) {
-                      return Center(
-                        child: Text(l10n.noPdfFiles),
-                      );
-                    }
+                  if (state.pdfFiles.isEmpty) {
+                    return Center(
+                      child: Text(l10n.noPdfFiles),
+                    );
+                  }
 
-                    return RefreshIndicator(
-                      onRefresh: () async {
-                        await context.read<PdfCubit>().loadPdfFiles();
-                        await context.read<FavoritesCubit>().loadFavorites();
-                      },
-                      child: ListView.separated(
-                        separatorBuilder: (context, index) => const Divider(),
-                        itemCount: state.pdfFiles.length,
-                        itemBuilder: (context, index) {
-                          final filePath = state.pdfFiles[index];
-                          final viewModel = context.read<PdfViewModel>();
-                          final fileName = viewModel.getFileName(filePath);
-                          final fileSize = viewModel.getFileSize(filePath);
-                          final lastModified =
-                              viewModel.getLastModified(filePath);
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      await context.read<PdfCubit>().loadPdfFiles();
+                      await context.read<FavoritesCubit>().loadFavorites();
+                    },
+                    child: ListView.separated(
+                      controller: _scrollController,
+                      physics: const BouncingScrollPhysics(),
+                      separatorBuilder: (context, index) => const Divider(),
+                      itemCount: state.pdfFiles.length,
+                      itemBuilder: (context, index) {
+                        final filePath = state.pdfFiles[index];
+                        final viewModel = context.read<PdfViewModel>();
+                        final fileName = viewModel.getFileName(filePath);
+                        final fileSize = viewModel.getFileSize(filePath);
+                        final lastModified = viewModel.getLastModified(filePath);
 
-                          return Slidable(
+                        return _buildAnimatedListItem(
+                          context,
+                          index,
+                          Slidable(
                             key: ValueKey(filePath),
                             endActionPane: ActionPane(
                               motion: const ScrollMotion(),
@@ -184,24 +278,18 @@ class _PdfFilesScreenState extends State<PdfFilesScreen> {
                               ),
                               onTap: () => _openPdfFile(context, filePath),
                             ),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    context.read<PdfCubit>().loadPdfFiles();
   }
 
   Future<void> _openPdfFile(BuildContext context, String filePath) async {

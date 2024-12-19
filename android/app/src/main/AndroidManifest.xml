@@ -11,7 +11,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     
     <application
-        android:label="pdf_app"
+        android:label="PDFox"
         android:name="${applicationName}"
         android:requestLegacyExternalStorage="true"
         android:preserveLegacyExternalStorage="true"

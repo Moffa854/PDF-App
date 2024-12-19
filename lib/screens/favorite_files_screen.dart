@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -10,8 +11,33 @@ import '../cubits/favorites/favorites_cubit.dart';
 import '../cubits/favorites/favorites_state.dart';
 import 'pdf_viewer_screen.dart';
 
-class FavoriteFilesScreen extends StatelessWidget {
+class FavoriteFilesScreen extends StatefulWidget {
   const FavoriteFilesScreen({super.key});
+
+  @override
+  State<FavoriteFilesScreen> createState() => _FavoriteFilesScreenState();
+}
+
+class _FavoriteFilesScreenState extends State<FavoriteFilesScreen> {
+  @override
+  void initState() {
+    super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

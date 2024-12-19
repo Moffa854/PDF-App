@@ -10,9 +10,10 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:pdf_app/cubits/language/language_state.dart';
 import 'package:pdf_app/screens/app_screen.dart';
+import 'package:pdf_app/screens/splash_screen.dart';
+import 'package:pdf_app/viewmodels/pdf_viewmodel.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'cubits/favorites/favorites_cubit.dart';
 import 'cubits/language/language_cubit.dart';
 import 'cubits/pdf/pdf_cubit.dart';
@@ -35,18 +36,18 @@ void main() async {
   // Initialize SharedPreferences
   final prefs = await SharedPreferences.getInstance();
 
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+  // Remove global orientation constraint to allow per-screen control
 
   runApp(
     DevicePreview(
       enabled: !kReleaseMode,
       builder: (context) => Provider<SharedPreferences>.value(
         value: prefs,
-        child: MultiBlocProvider(
+        child: MultiProvider(
           providers: [
+            ChangeNotifierProvider<PdfViewModel>(
+              create: (_) => PdfViewModel(),
+            ),
             BlocProvider(
               create: (context) => StorageCubit(),
             ),
@@ -80,7 +81,7 @@ class MyApp extends StatelessWidget {
         return BlocBuilder<LanguageCubit, LanguageState>(
           builder: (context, languageState) {
             return MaterialApp(
-              title: 'PDF Master',
+              title: 'PDFox',
               debugShowCheckedModeBanner: false,
               useInheritedMediaQuery: true,
               locale: languageState.locale,
@@ -99,7 +100,7 @@ class MyApp extends StatelessWidget {
               theme: themeState.lightTheme,
               darkTheme: themeState.darkTheme,
               themeMode: themeState.themeMode,
-              home: const AppScreen(),
+              home: const SplashScreen(),
             );
           },
         );

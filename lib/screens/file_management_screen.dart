@@ -1,22 +1,21 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:pdf_app/cubits/favorites/favorites_cubit.dart';
 import 'package:pdf_app/cubits/pdf/pdf_cubit.dart';
 import 'package:pdf_app/screens/favorite_files_screen.dart';
 import 'package:pdf_app/widgets/sizes_app.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:provider/provider.dart';
 
 import '../cubits/storage/storage_cubit.dart';
 import '../cubits/storage/storage_state.dart';
 import '../screens/pdf_files_screen.dart'; // Import PdfFilesScreen
-import '../viewmodels/file_management_viewmodel.dart';
 
 class FileManagementScreen extends StatefulWidget {
   const FileManagementScreen({super.key});
@@ -28,26 +27,23 @@ class FileManagementScreen extends StatefulWidget {
 class _FileManagementScreenState extends State<FileManagementScreen> {
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => FileManagementViewModel(),
-      child: Scaffold(
-        body: SafeArea(
-          child: BlocProvider.value(
-            value: context.read<StorageCubit>(),
-            child: SingleChildScrollView(
-              key: const PageStorageKey<String>('file_management_scroll'),
-              child: Column(
-                children: [
-                  _buildSearchBar(),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _buildFileTypes(),
-                  ),
-                  const SizedBox(height: 24),
-                  _buildStorageSection(),
-                ].animate(interval: 100.ms).fadeIn(duration: 400.ms).slideX(),
-              ),
+    return Scaffold(
+      body: SafeArea(
+        child: BlocProvider.value(
+          value: context.read<StorageCubit>(),
+          child: SingleChildScrollView(
+            key: const PageStorageKey<String>('file_management_scroll'),
+            child: Column(
+              children: [
+                _buildSearchBar(context),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildFileTypes(),
+                ),
+                const SizedBox(height: 24),
+                _buildStorageSection(),
+              ].animate(interval: 100.ms).fadeIn(duration: 400.ms).slideX(),
             ),
           ),
         ),
@@ -58,7 +54,22 @@ class _FileManagementScreenState extends State<FileManagementScreen> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     _initializeStorage();
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+    super.dispose();
   }
 
   Widget _buildFileTypes() {
@@ -92,12 +103,47 @@ class _FileManagementScreenState extends State<FileManagementScreen> {
         return GestureDetector(
           onTap: () async {
             if (type['label'] == 'PDF') {
+              // Show loading dialog
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (BuildContext context) {
+                  return Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.red),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Scanning PDF files...',
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+
               // Initialize PDF scanning
               final pdfCubit = context.read<PdfCubit>();
               await pdfCubit.loadPdfFiles();
+
+              // Close loading dialog
               if (mounted) {
+                Navigator.pop(context); // Close loading dialog
                 Navigator.push(
-                  // ignore: use_build_context_synchronously
                   context,
                   MaterialPageRoute(
                     builder: (context) => const PdfFilesScreen(),
@@ -111,7 +157,6 @@ class _FileManagementScreenState extends State<FileManagementScreen> {
               await favoritesCubit.loadFavorites();
               if (mounted) {
                 Navigator.push(
-                  // ignore: use_build_context_synchronously
                   context,
                   MaterialPageRoute(
                     builder: (context) => const FavoriteFilesScreen(),
@@ -173,7 +218,7 @@ class _FileManagementScreenState extends State<FileManagementScreen> {
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(16.0),
